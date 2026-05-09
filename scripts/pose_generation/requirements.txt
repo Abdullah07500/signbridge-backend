@@ -1,0 +1,5 @@
+kaggle
+pose-format>=0.0.19
+numpy
+pandas
+pyarrow

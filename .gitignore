@@ -3,3 +3,9 @@ __pycache__/
 *.pyc
 models/asl_bilstm_final.keras
 models/label_classes_lstm.npy
+
+# Kaggle dataset and generated outputs — too large for git
+data/
+
+# Claude Code session data
+.claude/
