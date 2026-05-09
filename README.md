@@ -1,4 +1,4 @@
-to Run it locally :
+**to Run it locally :**
 
 Step 1: git clone https://github.com/3mro4/asl-backend.git
 
