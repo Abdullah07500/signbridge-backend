@@ -13,7 +13,7 @@ CONFIDENCE_THRESHOLD = 0.5
 
 
 def load_model(model_path: str, labels_path: str):
-    interpreter = tf.lite.Interpreter(model_path=model_path)
+    interpreter = tf.lite.Interpreter(model_path=model_path, num_threads=4)
     prediction_fn = interpreter.get_signature_runner("serving_default")
 
     with open(labels_path, 'r') as f:

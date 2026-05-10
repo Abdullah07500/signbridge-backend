@@ -13,7 +13,7 @@ ml = {}
 async def lifespan(app: FastAPI):
     print("Loading model...")
     ml["model"], ml["classes"] = load_model(
-        "models/asl_bilstm.tflite",
+        "models/lstm_asl_model.tflite",
         "models/asl_labels.json"
     )
     print(f"Model ready. {len(ml['classes'])} signs loaded.")
