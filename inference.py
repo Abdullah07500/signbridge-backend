@@ -44,7 +44,8 @@ class InferenceSession:
         self.no_hands_counter = 0
         self.holistic = mp.solutions.holistic.Holistic(
             min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_tracking_confidence=0.5,
+            model_complexity=0
         )
 
     def close(self):
@@ -57,7 +58,9 @@ class InferenceSession:
             return {"sign": "No Sign", "confidence": 0.0, "buffer_pct": 0}
 
         image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        image_rgb.flags.writeable = False
         results = self.holistic.process(image_rgb)
+        image_rgb.flags.writeable = True
 
         hands_detected = bool(
             results.left_hand_landmarks or results.right_hand_landmarks
