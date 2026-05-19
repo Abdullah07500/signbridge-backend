@@ -3,7 +3,7 @@ import mediapipe as mp
 import tensorflow as tf
 import json
 import cv2
-from collections import deque, Counter
+from collections import deque
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -40,12 +40,14 @@ def extract_keypoints(results):
 class InferenceSession:
     def __init__(self):
         self.frames_buffer = deque(maxlen=MAX_FRAMES)
-        self.prediction_history = deque(maxlen=10)
+        self.frame_count   = 0
         self.no_hands_counter = 0
+        self.last_sign     = ''
+        self.last_conf     = 0.0
         self.holistic = mp.solutions.holistic.Holistic(
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5,
-            model_complexity=0
+            model_complexity=1
         )
 
     def close(self):
@@ -67,30 +69,40 @@ class InferenceSession:
         )
         self.no_hands_counter = 0 if hands_detected else self.no_hands_counter + 1
 
+        # Reset when hands leave frame
+        if self.no_hands_counter > 10:
+            self.frames_buffer.clear()
+            self.frame_count = 0
+            self.last_sign   = ''
+            self.last_conf   = 0.0
+            return {"sign": "No Sign", "confidence": 0.0, "buffer_pct": 0}
+
         keypoints = extract_keypoints(results)
         self.frames_buffer.append(keypoints)
+        self.frame_count += 1
 
         pct = int(len(self.frames_buffer) / MAX_FRAMES * 100)
 
         if len(self.frames_buffer) < MAX_FRAMES:
             return {"sign": "buffering", "confidence": 0.0, "buffer_pct": pct}
 
-        if self.no_hands_counter > 10:
-            self.prediction_history.clear()
-            return {"sign": "No Sign", "confidence": 0.0, "buffer_pct": 100}
+        # Predict once per complete window, then clear for next sign
+        if self.frame_count % MAX_FRAMES == 0:
+            input_data = np.array(list(self.frames_buffer), dtype=np.float32)
+            input_data = np.nan_to_num(input_data, nan=0.0)
 
-        input_data = np.array(list(self.frames_buffer), dtype=np.float32)
-        input_data = np.nan_to_num(input_data, nan=0.0)  # replace NaN with 0
+            prediction    = model(inputs=input_data)
+            probabilities = prediction['outputs'][0]
+            best_idx      = int(np.argmax(probabilities))
+            confidence    = float(probabilities[best_idx])
 
-        prediction = model(inputs=input_data)
-        probabilities = prediction['outputs'][0]
-        best_idx = int(np.argmax(probabilities))
-        confidence = float(probabilities[best_idx])
+            self.frames_buffer.clear()
+            self.last_sign = ''
+            self.last_conf = 0.0
 
-        if confidence > CONFIDENCE_THRESHOLD:
-            sign = classes.get(best_idx, 'Unknown')
-            self.prediction_history.append(sign)
-            smoothed = Counter(self.prediction_history).most_common(1)[0][0]
-            return {"sign": smoothed, "confidence": confidence, "buffer_pct": 100}
+            if confidence > CONFIDENCE_THRESHOLD:
+                sign = classes.get(best_idx, 'Unknown')
+                return {"sign": sign, "confidence": confidence, "buffer_pct": 0}
+            return {"sign": "No Sign", "confidence": 0.0, "buffer_pct": 0}
 
-        return {"sign": "No Sign", "confidence": 0.0, "buffer_pct": 100}
+        return {"sign": "buffering", "confidence": 0.0, "buffer_pct": pct}
