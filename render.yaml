@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: signbridge-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: FRONTEND_URL
+        value: https://signbridge-frontend.vercel.app

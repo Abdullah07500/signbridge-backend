@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import asyncio
 import json
@@ -23,14 +24,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# ── CORS ──────────────────────────────────────────────────
-_origins = ["http://localhost:4200"]
-if os.environ.get("FRONTEND_URL"):
-    _origins.append(os.environ["FRONTEND_URL"])
-
+# ── CORS (only needed for local dev) ──────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_origins,
+    allow_origins=["http://localhost:4200"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,3 +66,8 @@ async def translate(websocket: WebSocket):
         print("Client disconnected")
     finally:
         session.close()
+
+# ── Serve Angular frontend (production build) ─────────────
+_static = os.path.join(os.path.dirname(__file__), "static")
+if os.path.isdir(_static):
+    app.mount("/", StaticFiles(directory=_static, html=True), name="static")

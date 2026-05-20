@@ -8,7 +8,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-MAX_FRAMES = 30
+MAX_FRAMES = 20
 CONFIDENCE_THRESHOLD = 0.5
 
 
